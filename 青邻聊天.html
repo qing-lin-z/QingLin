@@ -1,0 +1,1875 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>青邻聊天 - ai聊天工具</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3B82F6',
+                        secondary: '#1E40AF',
+                        accent: '#60A5FA',
+                        dark: '#1E293B',
+                        light: '#F8FAFC'
+                    }
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .glass-effect {
+                backdrop-filter: blur(10px);
+                background: rgba(255, 255, 255, 0.1);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+            }
+            .gradient-bg {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            }
+            .slide-in {
+                animation: slideIn 0.3s ease-out;
+            }
+            .fade-in {
+                animation: fadeIn 0.5s ease-out;
+            }
+            .hover-scale {
+                transition: transform 0.2s ease-in-out;
+            }
+            .hover-scale:hover {
+                transform: scale(1.05);
+            }
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(-100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* 手机端拦截弹窗 - 确保默认隐藏 */
+        #mobileBlocker {
+            display: none !important;
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        /* 确保弹窗只在需要时显示 */
+        #mobileBlocker.show {
+            display: flex !important;
+        }
+        
+        /* 聊天气泡样式 */
+        .chat-bubble {
+            position: relative;
+            max-width: 80%;
+        }
+        
+        .user-bubble:before {
+            content: '';
+            position: absolute;
+            top: 12px;
+            right: -10px;
+            width: 0;
+            height: 0;
+            border-style: solid;
+            border-width: 5px 0 5px 10px;
+            border-color: transparent transparent transparent #3B82F6;
+        }
+        
+        .ai-bubble:before {
+            content: '';
+            position: absolute;
+            top: 12px;
+            left: -10px;
+            width: 0;
+            height: 0;
+            border-style: solid;
+            border-width: 5px 10px 5px 0;
+            border-color: transparent #E2E8F0 transparent transparent;
+        }
+        
+        /* 自定义滚动条 */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a1a1a1;
+        }
+    </style>
+</head>
+<body class="font-sans bg-gray-50 min-h-screen">
+    <!-- 手机端拦截弹窗 - 确保默认隐藏 -->
+    <div id="mobileBlocker" class="hidden">
+        <div class="w-24 h-24 bg-white/20 rounded-full flex items-center justify-center mb-8 pulse-animation">
+            <i class="fa fa-mobile text-4xl"></i>
+        </div>
+        <h1 class="text-4xl font-bold mb-6">不适配该手机</h1>
+        <p class="text-2xl mb-8 text-white/90">此应用专为桌面端设计</p>
+        <div class="bg-white/10 rounded-xl p-8 backdrop-blur-sm max-w-md w-full">
+            <p class="text-xl mb-6 font-medium">请使用电脑访问以获得最佳体验</p>
+            <ul class="text-left text-white/90 space-y-3 text-lg">
+                <li class="flex items-center gap-3">
+                    <i class="fa fa-keyboard-o text-2xl text-blue-300"></i>
+                    <span>支持键盘输入</span>
+                </li>
+                <li class="flex items-center gap-3">
+                    <i class="fa fa-desktop text-2xl text-green-300"></i>
+                    <span>大屏显示</span>
+                </li>
+                <li class="flex items-center gap-3">
+                    <i class="fa fa-cogs text-2xl text-yellow-300"></i>
+                    <span>完整功能</span>
+                </li>
+                <li class="flex items-center gap-3">
+                    <i class="fa fa-star text-2xl text-purple-300"></i>
+                    <span>专业体验</span>
+                </li>
+            </ul>
+        </div>
+        <div class="mt-8 text-white/70">
+            <p class="text-lg">感谢您的理解与支持</p>
+        </div>
+    </div>
+
+    <!-- 登录界面 -->
+    <div id="loginScreen" class="fixed inset-0 gradient-bg flex items-center justify-center z-50">
+        <div class="glass-effect rounded-2xl p-8 max-w-md w-full mx-4 text-white">
+            <div class="text-center mb-8">
+                <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4 pulse-animation">
+                    <i class="fa fa-comments text-2xl"></i>
+                </div>
+                <h1 class="text-3xl font-bold mb-2">青邻聊天</h1>
+                <p class="text-white/80">智能AI聊天工具</p>
+            </div>
+            
+            <form id="loginForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-2">硅基流动API密钥</label>
+                    <input type="password" id="apiKeyInput" 
+                           class="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-transparent transition-all duration-300"
+                           placeholder="sk-xxxxxxxxxxxxxxxxxxxx" required>
+                    <p class="text-xs text-white/60 mt-1">您的API密钥将安全存储在浏览器本地</p>
+                </div>
+                
+                <button type="submit" 
+                        class="w-full bg-white text-primary font-semibold py-3 px-4 rounded-lg hover:bg-gray-100 transition-colors duration-300 transform hover:scale-105">
+                    <i class="fa fa-sign-in mr-2"></i>
+                    登录
+                </button>
+            </form>
+            
+            <div class="mt-6 text-center">
+                <p class="text-sm text-white/60">
+                    没有API密钥？<a href="https://cloud.siliconflow.cn/" target="_blank" class="text-white hover:underline transition-colors">前往硅基流动获取</a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 桌面端主界面 -->
+    <div id="mainScreen" class="hidden flex h-screen">
+        <!-- 侧边栏 -->
+        <div class="w-80 bg-white border-r border-gray-200 flex flex-col shadow-lg">
+            <!-- 侧边栏头部 -->
+            <div class="p-4 border-b border-gray-200 bg-white">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-bold text-gray-800">青邻聊天</h2>
+                    <div class="flex gap-2">
+                        <button id="newGroupBtn" class="p-2 text-gray-500 hover:text-primary hover:bg-gray-100 rounded-lg transition-colors duration-300 hover-scale">
+                            <i class="fa fa-plus-square"></i>
+                        </button>
+                        <button id="settingsBtn" class="p-2 text-gray-500 hover:text-primary hover:bg-gray-100 rounded-lg transition-colors duration-300 hover-scale">
+                            <i class="fa fa-bullseye"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 添加AI按钮 -->
+                <button id="addAiBtn" class="w-full bg-primary text-white py-2 px-4 rounded-lg hover:bg-secondary transition-colors duration-300 flex items-center justify-center gap-2 hover-scale">
+                    <i class="fa fa-plus"></i>
+                    添加AI
+                </button>
+            </div>
+
+            <!-- 聊天列表 -->
+            <div class="flex-1 overflow-y-auto p-4 bg-gray-50">
+                <!-- 群聊列表 -->
+                <div class="space-y-2 mb-6">
+                    <div class="flex items-center justify-between mb-2">
+                        <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider">群聊房间</h3>
+                        <button id="manageGroupsBtn" class="text-xs text-primary hover:underline transition-colors">管理</button>
+                    </div>
+                    
+                    <div id="groupList" class="space-y-1">
+                        <div class="text-center py-4 text-gray-500">
+                            <i class="fa fa-users text-xl mb-2"></i>
+                            <p class="text-sm">暂无群聊</p>
+                            <p class="text-xs mt-1">点击"+"创建群聊</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AI列表 -->
+                <div class="space-y-2">
+                    <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">我的AI</h3>
+                    <div id="aiList" class="space-y-1">
+                        <div class="text-center py-8 text-gray-500">
+                            <i class="fa fa-robot text-2xl mb-2"></i>
+                            <p>暂无添加的AI</p>
+                            <p class="text-xs mt-1">点击"添加AI"按钮开始</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 侧边栏底部 -->
+            <div class="p-4 border-t border-gray-200 bg-white">
+                <div class="flex items-center justify-between text-sm text-gray-600">
+                    <span id="apiKeyDisplay">API: 未登录</span>
+                    <button id="logoutBtn" class="text-red-500 hover:text-red-700 transition-colors duration-300">
+                        退出
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 聊天区域 -->
+        <div class="flex-1 flex flex-col bg-gray-50">
+            <!-- 聊天头部 -->
+            <div class="bg-white border-b border-gray-200 p-4 flex items-center justify-between shadow-sm">
+                <div class="flex items-center gap-3">
+                    <div id="currentChatAvatar" class="w-10 h-10 bg-gradient-to-br from-primary to-purple-600 rounded-lg flex items-center justify-center">
+                        <i class="fa fa-users text-white"></i>
+                    </div>
+                    <div>
+                        <h2 id="currentChatTitle" class="text-xl font-bold text-gray-800">青邻聊天</h2>
+                        <p id="currentChatSubtitle" class="text-sm text-gray-500">欢迎使用AI聊天工具</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-2">
+                    <button id="clearChatBtn" class="p-2 text-gray-500 hover:text-red-500 hover:bg-gray-100 rounded-lg transition-colors duration-300 hover-scale">
+                        <i class="fa fa-trash"></i>
+                    </button>
+                    <button id="exportChatBtn" class="p-2 text-gray-500 hover:text-primary hover:bg-gray-100 rounded-lg transition-colors duration-300 hover-scale">
+                        <i class="fa fa-download"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 聊天消息区域 -->
+            <div id="chatMessages" class="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+                <!-- 欢迎消息 -->
+                <div class="text-center py-8">
+                    <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fa fa-comments text-2xl text-gray-400"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-800 mb-2">欢迎使用青邻聊天</h3>
+                    <p class="text-gray-600">请先登录您的硅基流动API密钥</p>
+                </div>
+            </div>
+
+            <!-- 输入区域 -->
+            <div class="bg-white border-t border-gray-200 p-4 shadow-sm">
+                <div class="flex items-center gap-3">
+                    <!-- 语音输入按钮 -->
+                    <button id="voiceInputBtn" 
+                            class="bg-gray-100 text-gray-700 p-3 rounded-lg hover:bg-gray-200 transition-colors duration-300 hover-scale">
+                        <i class="fa fa-microphone"></i>
+                    </button>
+                    
+                    <textarea id="messageInput" 
+                              placeholder="输入消息... 或长按麦克风语音输入" 
+                              class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent resize-none min-h-[60px] max-h-[120px] transition-all duration-300"></textarea>
+                    
+                    <button id="sendBtn" 
+                            class="bg-primary text-white p-3 rounded-lg hover:bg-secondary transition-colors duration-300 hover-scale">
+                        <i class="fa fa-paper-plane"></i>
+                    </button>
+                </div>
+                
+                <div class="flex items-center justify-between mt-2 text-xs text-gray-500">
+                    <span id="charCount">0/2000</span>
+                    <span id="modelInfo">请先登录</span>
+                </div>
+                <div class="text-center mt-2">
+                    <span id="authorInfo" class="text-primary cursor-pointer text-xs hover:underline transition-colors">关于作者</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加AI模态框 -->
+    <div id="addAiModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-2xl p-6 max-w-md w-full mx-4">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xl font-bold text-gray-800">添加AI</h3>
+                <button id="closeAddAiModal" class="text-gray-500 hover:text-gray-700">
+                    <i class="fa fa-times"></i>
+                </button>
+            </div>
+            
+            <form id="addAiForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">模型名称</label>
+                    <input type="text" id="modelName" 
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                           placeholder="例如: deepseek-ai/DeepSeek-R1" required>
+                    <p class="text-xs text-gray-500 mt-1">格式：组织名/模型名</p>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">显示名称</label>
+                    <input type="text" id="displayName" 
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                           placeholder="例如: DeepSeek-R1">
+                    <p class="text-xs text-gray-500 mt-1">可选，默认使用模型名的一部分</p>
+                </div>
+                
+                <button type="submit" 
+                        class="w-full bg-primary text-white py-2 px-4 rounded-lg hover:bg-secondary transition-colors duration-300">
+                    添加
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 新建群聊模态框 -->
+    <div id="newGroupModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-2xl p-6 max-w-md w-full mx-4 max-h-[80vh] overflow-y-auto">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xl font-bold text-gray-800">新建群聊</h3>
+                <button id="closeNewGroupModal" class="text-gray-500 hover:text-gray-700">
+                    <i class="fa fa-times"></i>
+                </button>
+            </div>
+            
+            <form id="newGroupForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">群聊名称</label>
+                    <input type="text" id="groupName" 
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                           placeholder="输入群聊名称" required>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">选择AI成员</label>
+                    <div id="aiMembersList" class="space-y-2 max-h-[300px] overflow-y-auto">
+                        <p class="text-gray-500 text-sm">暂无可用AI，请先添加AI</p>
+                    </div>
+                </div>
+                
+                <button type="submit" 
+                        class="w-full bg-primary text-white py-2 px-4 rounded-lg hover:bg-secondary transition-colors duration-300">
+                    创建群聊
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 设置模态框 -->
+    <div id="settingsModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-2xl p-6 max-w-md w-full mx-4 max-h-[80vh] overflow-y-auto">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xl font-bold text-gray-800">设置</h3>
+                <button id="closeSettingsModal" class="text-gray-500 hover:text-gray-700">
+                    <i class="fa fa-times"></i>
+                </button>
+            </div>
+            
+            <form id="settingsForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">温度</label>
+                    <input type="range" id="temperature" min="0" max="1" step="0.1" value="0.7"
+                           class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                    <div class="flex justify-between text-xs text-gray-500 mt-1">
+                        <span>精确</span>
+                        <span id="temperatureValue">0.7</span>
+                        <span>随机</span>
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">最大长度</label>
+                    <select id="maxTokens" 
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                        <option value="512">512</option>
+                        <option value="1024" selected>1024</option>
+                        <option value="2048">2048</option>
+                        <option value="4096">4096</option>
+                    </select>
+                </div>
+                
+                <div class="flex items-center space-x-2">
+                    <input type="checkbox" id="groupSequential" checked
+                           class="w-4 h-4 text-primary focus:ring-primary border-gray-300 rounded">
+                    <label for="groupSequential" class="text-sm text-gray-700">群聊顺序发送</label>
+                </div>
+                
+                <div class="flex items-center space-x-2">
+                    <input type="checkbox" id="autoSendAfterVoice" checked
+                           class="w-4 h-4 text-primary focus:ring-primary border-gray-300 rounded">
+                    <label for="autoSendAfterVoice" class="text-sm text-gray-700">语音识别后自动发送</label>
+                </div>
+                
+                <div class="pt-4 border-t border-gray-200">
+                    <button type="button" id="resetAllData" 
+                            class="w-full bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600 transition-colors duration-300">
+                        <i class="fa fa-trash mr-2"></i>
+                        重置所有数据
+                    </button>
+                </div>
+                
+                <button type="submit" 
+                        class="w-full bg-primary text-white py-2 px-4 rounded-lg hover:bg-secondary transition-colors duration-300">
+                    保存设置
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 群聊管理模态框 -->
+    <div id="groupManagementModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-2xl p-6 max-w-md w-full mx-4 max-h-[80vh] overflow-y-auto">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xl font-bold text-gray-800">群聊管理</h3>
+                <button id="closeGroupManagementModal" class="text-gray-500 hover:text-gray-700">
+                    <i class="fa fa-times"></i>
+                </button>
+            </div>
+            
+            <div id="groupManagementList" class="space-y-3">
+                <!-- 群聊项目将通过JavaScript动态添加 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 群聊设置模态框 -->
+    <div id="groupSettingsModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-2xl p-6 max-w-md w-full mx-4 max-h-[80vh] overflow-y-auto">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xl font-bold text-gray-800">群聊设置</h3>
+                <button id="closeGroupSettingsModal" class="text-gray-500 hover:text-gray-700">
+                    <i class="fa fa-times"></i>
+                </button>
+            </div>
+            
+            <form id="groupSettingsForm" class="space-y-4">
+                <input type="hidden" id="currentGroupId">
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">群聊名称</label>
+                    <input type="text" id="editGroupName" 
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                           required>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">群聊成员</label>
+                    <div id="groupMembersList" class="space-y-2 max-h-[300px] overflow-y-auto">
+                        <!-- 成员列表将通过JavaScript动态添加 -->
+                    </div>
+                </div>
+                
+                <div class="pt-4 border-t border-gray-200">
+                    <button type="button" id="deleteGroup" 
+                            class="w-full bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600 transition-colors duration-300">
+                        <i class="fa fa-trash mr-2"></i>
+                        删除群聊
+                    </button>
+                </div>
+                
+                <button type="submit" 
+                        class="w-full bg-primary text-white py-2 px-4 rounded-lg hover:bg-secondary transition-colors duration-300">
+                    保存设置
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 通知提示 -->
+    <div id="notification" class="fixed top-4 right-4 z-50 hidden">
+        <div class="bg-white rounded-lg shadow-lg p-4 flex items-center gap-3 min-w-[300px]">
+            <div id="notificationIcon" class="w-8 h-8 rounded-full flex items-center justify-center">
+                <i class="fa fa-info text-white"></i>
+            </div>
+            <div>
+                <h4 id="notificationTitle" class="font-semibold text-gray-800"></h4>
+                <p id="notificationMessage" class="text-sm text-gray-600"></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==============================
+        // 设备检测模块 - 只检测Android和iPhone
+        // ==============================
+        function isMobileDevice() {
+            const userAgent = navigator.userAgent;
+            const userAgentLower = userAgent.toLowerCase();
+            
+            // 只检测Android和iPhone标识
+            return userAgentLower.includes('android') || userAgentLower.includes('iphone');
+        }
+
+        function showMobileBlocker() {
+            const blocker = document.getElementById('mobileBlocker');
+            blocker.classList.add('show');
+            document.body.style.overflow = 'hidden';
+        }
+
+        // ==============================
+        // 应用主类
+        // ==============================
+        class ChatApp {
+            constructor() {
+                this.apiKey = localStorage.getItem('siliconflow_api_key') || '';
+                this.currentChat = null;
+                this.ais = JSON.parse(localStorage.getItem('saved_ais') || '[]');
+                this.groups = JSON.parse(localStorage.getItem('chat_groups') || '[]');
+                this.contexts = JSON.parse(localStorage.getItem('chat_contexts') || '{}');
+                this.settings = JSON.parse(localStorage.getItem('app_settings') || '{}');
+                this.isRecording = false;
+                this.mediaRecorder = null;
+                this.audioChunks = [];
+                
+                // 默认设置
+                this.defaultSettings = {
+                    temperature: 0.7,
+                    max_tokens: 1024,
+                    group_sequential: true,
+                    group_include_names: true,
+                    auto_send_after_voice: true
+                };
+                
+                this.initialize();
+            }
+
+            initialize() {
+                // 1. 首先进行设备检测
+                const isMobile = isMobileDevice();
+                
+                // 2. 只在Android或iPhone上显示拦截弹窗
+                if (isMobile) {
+                    showMobileBlocker();
+                    return;
+                }
+                
+                // 3. 桌面设备正常初始化
+                this.applySettings();
+                this.setupEventListeners();
+                this.checkLoginStatus();
+                this.renderGroupList();
+                this.renderAIList();
+                this.selectFirstAvailableChat();
+            }
+
+            applySettings() {
+                this.settings = { ...this.defaultSettings, ...this.settings };
+            }
+
+            setupEventListeners() {
+                // 登录相关
+                document.getElementById('loginForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.handleLogin();
+                });
+
+                // 主界面相关
+                document.getElementById('addAiBtn').addEventListener('click', () => {
+                    this.showAddAiModal();
+                });
+
+                document.getElementById('newGroupBtn').addEventListener('click', () => {
+                    this.showNewGroupModal();
+                });
+
+                document.getElementById('settingsBtn').addEventListener('click', () => {
+                    this.showSettingsModal();
+                });
+
+                document.getElementById('logoutBtn').addEventListener('click', () => {
+                    this.handleLogout();
+                });
+
+                // 聊天相关
+                document.getElementById('messageInput').addEventListener('input', (e) => {
+                    this.updateCharCount(e.target.value);
+                });
+
+                document.getElementById('messageInput').addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        this.sendMessage();
+                    }
+                });
+
+                document.getElementById('sendBtn').addEventListener('click', () => {
+                    this.sendMessage();
+                });
+
+                document.getElementById('clearChatBtn').addEventListener('click', () => {
+                    this.clearCurrentChat();
+                });
+
+                document.getElementById('exportChatBtn').addEventListener('click', () => {
+                    this.exportChat();
+                });
+
+                // 语音输入相关
+                const voiceBtn = document.getElementById('voiceInputBtn');
+                voiceBtn.addEventListener('mousedown', () => {
+                    this.startVoiceRecording();
+                });
+                
+                voiceBtn.addEventListener('mouseup', () => {
+                    this.stopVoiceRecording();
+                });
+                
+                voiceBtn.addEventListener('mouseleave', () => {
+                    if (this.isRecording) {
+                        this.stopVoiceRecording();
+                    }
+                });
+
+                // 模态框相关
+                this.setupModalListeners();
+
+                // 作者信息
+                document.getElementById('authorInfo').addEventListener('click', () => {
+                    this.showAuthorInfo();
+                });
+            }
+
+            setupModalListeners() {
+                // 添加AI模态框
+                document.getElementById('closeAddAiModal').addEventListener('click', () => {
+                    this.hideModal('addAiModal');
+                });
+                
+                document.getElementById('addAiForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.addAI();
+                });
+
+                // 新建群聊模态框
+                document.getElementById('closeNewGroupModal').addEventListener('click', () => {
+                    this.hideModal('newGroupModal');
+                });
+                
+                document.getElementById('newGroupForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.createGroup();
+                });
+
+                // 设置模态框
+                document.getElementById('closeSettingsModal').addEventListener('click', () => {
+                    this.hideModal('settingsModal');
+                });
+                
+                document.getElementById('settingsForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.saveSettings();
+                });
+                
+                document.getElementById('temperature').addEventListener('input', (e) => {
+                    document.getElementById('temperatureValue').textContent = e.target.value;
+                });
+                
+                document.getElementById('resetAllData').addEventListener('click', () => {
+                    this.resetAllData();
+                });
+
+                // 群聊管理模态框
+                document.getElementById('closeGroupManagementModal').addEventListener('click', () => {
+                    this.hideModal('groupManagementModal');
+                });
+                
+                document.getElementById('manageGroupsBtn').addEventListener('click', () => {
+                    this.showGroupManagementModal();
+                });
+
+                // 群聊设置模态框
+                document.getElementById('closeGroupSettingsModal').addEventListener('click', () => {
+                    this.hideModal('groupSettingsModal');
+                });
+                
+                document.getElementById('groupSettingsForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.saveGroupSettings();
+                });
+                
+                document.getElementById('deleteGroup').addEventListener('click', () => {
+                    this.deleteGroup();
+                });
+
+                // 点击模态框背景关闭
+                document.querySelectorAll('[id$="Modal"]').forEach(modal => {
+                    modal.addEventListener('click', (e) => {
+                        if (e.target === modal) {
+                            this.hideModal(modal.id);
+                        }
+                    });
+                });
+            }
+
+            checkLoginStatus() {
+                if (this.apiKey) {
+                    document.getElementById('loginScreen').classList.add('hidden');
+                    document.getElementById('mainScreen').classList.remove('hidden');
+                    this.updateApiKeyDisplay();
+                } else {
+                    document.getElementById('loginScreen').classList.remove('hidden');
+                    document.getElementById('mainScreen').classList.add('hidden');
+                }
+            }
+
+            handleLogin() {
+                const apiKey = document.getElementById('apiKeyInput').value.trim();
+                if (apiKey) {
+                    this.apiKey = apiKey;
+                    localStorage.setItem('siliconflow_api_key', apiKey);
+                    this.checkLoginStatus();
+                    this.showNotification('登录成功！', 'success');
+                }
+            }
+
+            handleLogout() {
+                if (confirm('确定要退出登录吗？')) {
+                    localStorage.removeItem('siliconflow_api_key');
+                    this.apiKey = '';
+                    this.checkLoginStatus();
+                    this.showNotification('已退出登录', 'info');
+                }
+            }
+
+            selectFirstAvailableChat() {
+                if (this.groups.length > 0) {
+                    this.switchChat(this.groups[0].id);
+                } else if (this.ais.length > 0) {
+                    this.switchChat(`private_${this.ais[0].id}`);
+                }
+            }
+
+            renderGroupList() {
+                const container = document.getElementById('groupList');
+                container.innerHTML = '';
+
+                if (this.groups.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center py-4 text-gray-500">
+                            <i class="fa fa-users text-xl mb-2"></i>
+                            <p class="text-sm">暂无群聊</p>
+                            <p class="text-xs mt-1">点击"+"创建群聊</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                this.groups.forEach(group => {
+                    const isActive = this.currentChat === group.id;
+                    const groupItem = document.createElement('button');
+                    groupItem.className = `w-full flex items-center justify-between p-3 rounded-lg transition-all duration-300 ${
+                        isActive ? 'bg-primary/10 text-primary border-l-4 border-primary' : 'hover:bg-gray-100 text-gray-700 border-l-4 border-transparent'
+                    }`;
+                    groupItem.onclick = () => this.switchChat(group.id);
+                    
+                    const memberCount = group.members.length;
+                    const onlineMembers = group.members.filter(id => !group.muted.includes(id)).length;
+                    
+                    groupItem.innerHTML = `
+                        <div class="flex items-center gap-3 flex-1 min-w-0">
+                            <div class="w-10 h-10 bg-gradient-to-br from-primary to-purple-600 rounded-lg flex items-center justify-center">
+                                <i class="fa fa-users text-white"></i>
+                            </div>
+                            <div class="text-left flex-1 min-w-0">
+                                <div class="font-medium truncate">${group.name}</div>
+                                <div class="text-xs text-gray-500">
+                                    ${onlineMembers}/${memberCount} 在线
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    container.appendChild(groupItem);
+                });
+            }
+
+            renderAIList() {
+                const aiList = document.getElementById('aiList');
+                aiList.innerHTML = '';
+
+                if (this.ais.length === 0) {
+                    aiList.innerHTML = `
+                        <div class="text-center py-8 text-gray-500">
+                            <i class="fa fa-robot text-2xl mb-2"></i>
+                            <p>暂无添加的AI</p>
+                            <p class="text-xs mt-1">点击"添加AI"按钮开始</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                this.ais.forEach(ai => {
+                    const chatId = `private_${ai.id}`;
+                    const isActive = this.currentChat === chatId;
+                    const aiItem = document.createElement('div');
+                    aiItem.className = `w-full flex items-center justify-between p-3 rounded-lg transition-all duration-300 ${
+                        isActive ? 'bg-primary/10 text-primary border-l-4 border-primary' : 'hover:bg-gray-100 text-gray-700 border-l-4 border-transparent'
+                    }`;
+                    
+                    const shortModelName = this.formatShortModelName(ai.model);
+                    
+                    aiItem.innerHTML = `
+                        <div class="flex items-center gap-3 flex-1 cursor-pointer" onclick="app.switchChat('${chatId}')">
+                            <div class="w-10 h-10 bg-gradient-to-br from-blue-400 to-purple-500 rounded-lg flex items-center justify-center">
+                                <span class="text-white font-semibold">${ai.displayName.charAt(0).toUpperCase()}</span>
+                            </div>
+                            <div class="text-left flex-1 min-w-0">
+                                <div class="font-medium truncate">${ai.displayName}</div>
+                                <div class="text-xs text-gray-500 truncate">${shortModelName}</div>
+                            </div>
+                        </div>
+                        <div class="flex gap-1">
+                            <button onclick="event.stopPropagation(); app.editAI('${ai.id}')" 
+                                    class="p-1 text-gray-400 hover:text-blue-500 transition-colors">
+                                <i class="fa fa-pencil"></i>
+                            </button>
+                            <button onclick="event.stopPropagation(); app.deleteAI('${ai.id}')" 
+                                    class="p-1 text-gray-400 hover:text-red-500 transition-colors">
+                                <i class="fa fa-trash"></i>
+                            </button>
+                        </div>
+                    `;
+
+                    aiList.appendChild(aiItem);
+                });
+            }
+
+            switchChat(chatId) {
+                this.currentChat = chatId;
+                this.loadCurrentChat();
+                this.updateChatHeader();
+                this.renderGroupList();
+                this.renderAIList();
+                document.getElementById('messageInput').focus();
+            }
+
+            updateChatHeader() {
+                const avatar = document.getElementById('currentChatAvatar');
+                const title = document.getElementById('currentChatTitle');
+                const subtitle = document.getElementById('currentChatSubtitle');
+                const modelInfo = document.getElementById('modelInfo');
+
+                if (!this.apiKey) {
+                    title.textContent = '青邻聊天';
+                    subtitle.textContent = '请先登录';
+                    modelInfo.textContent = '请先登录';
+                    return;
+                }
+
+                if (this.currentChat && this.currentChat.startsWith('group_')) {
+                    const group = this.groups.find(g => g.id === this.currentChat);
+                    if (group) {
+                        avatar.innerHTML = '<i class="fa fa-users text-white"></i>';
+                        avatar.className = 'w-10 h-10 bg-gradient-to-br from-primary to-purple-600 rounded-lg flex items-center justify-center';
+                        title.textContent = group.name;
+                        subtitle.textContent = `${group.members.length}个成员`;
+                        modelInfo.textContent = `群聊模式 (${group.members.length}个AI)`;
+                    }
+                } else if (this.currentChat && this.currentChat.startsWith('private_')) {
+                    const aiId = this.currentChat.replace('private_', '');
+                    const ai = this.ais.find(a => a.id === aiId);
+                    if (ai) {
+                        avatar.innerHTML = `<span class="text-white font-semibold">${ai.displayName.charAt(0).toUpperCase()}</span>`;
+                        avatar.className = 'w-10 h-10 bg-gradient-to-br from-blue-400 to-purple-500 rounded-lg flex items-center justify-center';
+                        title.textContent = ai.displayName;
+                        subtitle.textContent = this.getFullModelName(ai.model);
+                        const shortModelName = this.formatShortModelName(ai.model);
+                        modelInfo.textContent = `模型: ${shortModelName}`;
+                    }
+                } else {
+                    title.textContent = '青邻聊天';
+                    subtitle.textContent = '选择聊天对象';
+                    modelInfo.textContent = '请选择聊天对象';
+                }
+            }
+
+            getCurrentContext() {
+                if (!this.currentChat || !this.contexts[this.currentChat]) {
+                    this.contexts[this.currentChat] = [];
+                }
+                return this.contexts[this.currentChat];
+            }
+
+            addToContext(role, content, sender = '') {
+                const context = this.getCurrentContext();
+                const message = {
+                    role,
+                    content,
+                    timestamp: new Date().toISOString(),
+                    sender
+                };
+                
+                context.push(message);
+                
+                if (context.length > 40) {
+                    context.splice(0, context.length - 40);
+                }
+                
+                this.saveContexts();
+                return message;
+            }
+
+            saveContexts() {
+                localStorage.setItem('chat_contexts', JSON.stringify(this.contexts));
+            }
+
+            loadCurrentChat() {
+                const messagesContainer = document.getElementById('chatMessages');
+                const context = this.getCurrentContext();
+
+                if (!this.apiKey) {
+                    messagesContainer.innerHTML = `
+                        <div class="text-center py-8">
+                            <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <i class="fa fa-key text-2xl text-gray-400"></i>
+                            </div>
+                            <h3 class="text-lg font-semibold text-gray-800 mb-2">请先登录</h3>
+                            <p class="text-gray-600">需要硅基流动API密钥才能使用</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                if (context.length === 0) {
+                    let emptyState = '';
+                    if (this.currentChat && this.currentChat.startsWith('group_')) {
+                        const group = this.groups.find(g => g.id === this.currentChat);
+                        if (group) {
+                            emptyState = `
+                                <div class="text-center py-8">
+                                    <div class="w-16 h-16 bg-gradient-to-br from-primary to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                                        <i class="fa fa-users text-2xl text-white"></i>
+                                    </div>
+                                    <h3 class="text-lg font-semibold text-primary mb-2">${group.name}</h3>
+                                    <p class="text-gray-600">与群成员一起聊天吧</p>
+                                </div>
+                            `;
+                        }
+                    } else if (this.currentChat && this.currentChat.startsWith('private_')) {
+                        const aiId = this.currentChat.replace('private_', '');
+                        const ai = this.ais.find(a => a.id === aiId);
+                        if (ai) {
+                            emptyState = `
+                                <div class="text-center py-8">
+                                    <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                        <i class="fa fa-comments text-2xl text-gray-400"></i>
+                                    </div>
+                                    <h3 class="text-lg font-semibold text-gray-800 mb-2">开始聊天吧</h3>
+                                    <p class="text-gray-600">输入消息与${ai.displayName}交流</p>
+                                </div>
+                            `;
+                        }
+                    } else {
+                        emptyState = `
+                            <div class="text-center py-8">
+                                <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <i class="fa fa-comments text-2xl text-gray-400"></i>
+                                </div>
+                                <h3 class="text-lg font-semibold text-gray-800 mb-2">选择聊天对象</h3>
+                                <p class="text-gray-600">从左侧列表中选择一个AI或群聊</p>
+                            </div>
+                        `;
+                    }
+                    messagesContainer.innerHTML = emptyState;
+                    return;
+                }
+
+                messagesContainer.innerHTML = '';
+                context.forEach(message => {
+                    this.renderMessage(message);
+                });
+
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+
+            renderMessage(message) {
+                const messagesContainer = document.getElementById('chatMessages');
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'fade-in';
+
+                if (message.role === 'user') {
+                    messageDiv.innerHTML = `
+                        <div class="flex items-start justify-end gap-3">
+                            <div class="bg-primary text-white p-4 rounded-lg max-w-3xl chat-bubble user-bubble">
+                                <div class="prose prose-sm max-w-none">${this.formatMessage(message.content)}</div>
+                                <div class="text-xs opacity-75 mt-1 text-right">
+                                    ${this.formatTime(message.timestamp)}
+                                </div>
+                            </div>
+                            <div class="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center flex-shrink-0">
+                                <i class="fa fa-bullseye text-gray-600 text-sm"></i>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    const ai = this.ais.find(a => a.id === message.sender) || {
+                        displayName: 'AI',
+                        model: 'unknown'
+                    };
+                    
+                    const shortModelName = this.formatShortModelName(ai.model);
+                    
+                    messageDiv.innerHTML = `
+                        <div class="flex items-start gap-3">
+                            <div class="w-8 h-8 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center flex-shrink-0">
+                                <span class="text-white font-semibold text-xs">${ai.displayName.charAt(0).toUpperCase()}</span>
+                            </div>
+                            <div class="flex-1 max-w-3xl">
+                                <div class="flex items-center justify-between mb-1">
+                                    <span class="font-medium text-gray-800">${ai.displayName}</span>
+                                    <span class="text-xs text-gray-400">${shortModelName}</span>
+                                </div>
+                                <div class="bg-gray-100 text-gray-800 p-4 rounded-lg chat-bubble ai-bubble">
+                                    <div class="prose prose-sm max-w-none">${this.formatMessage(message.content)}</div>
+                                    <div class="text-xs text-gray-500 mt-1">
+                                        ${this.formatTime(message.timestamp)}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                messagesContainer.appendChild(messageDiv);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+
+            async sendMessage() {
+                const input = document.getElementById('messageInput');
+                const content = input.value.trim();
+
+                if (!content) return;
+                if (!this.apiKey) {
+                    this.showNotification('请先登录', 'error');
+                    return;
+                }
+
+                if (!this.currentChat) {
+                    this.showNotification('请先选择一个聊天对象', 'error');
+                    return;
+                }
+
+                input.value = '';
+                this.updateCharCount('');
+
+                const userMessage = this.addToContext('user', content);
+                this.renderMessage(userMessage);
+
+                const sendBtn = document.getElementById('sendBtn');
+                sendBtn.disabled = true;
+                sendBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
+
+                try {
+                    if (this.currentChat.startsWith('group_')) {
+                        await this.sendGroupMessage(content);
+                    } else {
+                        await this.sendPrivateMessage(content);
+                    }
+                } catch (error) {
+                    console.error('发送消息失败:', error);
+                    const errorMessage = error.message || 'API调用失败，请检查网络连接或API密钥';
+                    this.addToContext('assistant', `抱歉，${errorMessage}。`);
+                    this.loadCurrentChat();
+                    this.showNotification(errorMessage, 'error');
+                } finally {
+                    sendBtn.disabled = false;
+                    sendBtn.innerHTML = '<i class="fa fa-paper-plane"></i>';
+                }
+            }
+
+            async sendPrivateMessage(content) {
+                const aiId = this.currentChat.replace('private_', '');
+                const ai = this.ais.find(a => a.id === aiId);
+                if (!ai) return;
+
+                try {
+                    const response = await this.callSiliconFlowAPI(ai.model, content);
+                    const aiMessage = this.addToContext('assistant', response, ai.id);
+                    this.renderMessage(aiMessage);
+                    this.showNotification('消息发送成功', 'success');
+                } catch (error) {
+                    throw error;
+                }
+            }
+
+            async sendGroupMessage(content) {
+                const group = this.groups.find(g => g.id === this.currentChat);
+                if (!group) return;
+
+                const activeMembers = group.members.filter(id => !group.muted.includes(id));
+                
+                if (activeMembers.length === 0) {
+                    this.addToContext('assistant', '群聊中没有活跃成员，无法发送消息。');
+                    this.loadCurrentChat();
+                    return;
+                }
+
+                try {
+                    for (let i = 0; i < activeMembers.length; i++) {
+                        const aiId = activeMembers[i];
+                        const ai = this.ais.find(a => a.id === aiId);
+                        if (ai) {
+                            await this.sendGroupMessageToAI(ai, content, i + 1, activeMembers.length);
+                        }
+                    }
+                    this.showNotification('群聊回复完成！', 'success');
+                } catch (error) {
+                    throw error;
+                }
+            }
+
+            async sendGroupMessageToAI(ai, content, current, total) {
+                const messagesContainer = document.getElementById('chatMessages');
+                const typingDiv = document.createElement('div');
+                typingDiv.className = 'flex items-start gap-3 fade-in';
+                typingDiv.innerHTML = `
+                    <div class="w-8 h-8 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center flex-shrink-0">
+                        <span class="text-white font-semibold text-xs">${ai.displayName.charAt(0).toUpperCase()}</span>
+                    </div>
+                    <div class="flex-1 max-w-3xl">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="font-medium text-gray-800">${ai.displayName}</span>
+                            <span class="text-xs text-gray-400">正在输入...</span>
+                        </div>
+                        <div class="bg-gray-100 p-4 rounded-lg">
+                            <div class="flex space-x-2">
+                                <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0ms"></div>
+                                <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 150ms"></div>
+                                <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 300ms"></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                messagesContainer.appendChild(typingDiv);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+                try {
+                    const response = await this.callSiliconFlowAPI(ai.model, content);
+                    typingDiv.remove();
+                    
+                    const aiMessage = this.addToContext('assistant', response, ai.id);
+                    this.renderMessage(aiMessage);
+
+                    return response;
+                } catch (error) {
+                    typingDiv.remove();
+                    const errorMessage = `抱歉，${ai.displayName}暂时无法回复：${error.message}`;
+                    const aiMessage = this.addToContext('assistant', errorMessage, ai.id);
+                    this.renderMessage(aiMessage);
+                    return null;
+                }
+            }
+
+            async callSiliconFlowAPI(model, content) {
+                const url = 'https://api.siliconflow.cn/v1/chat/completions';
+                
+                const context = this.getCurrentContext();
+                const messages = context.map(msg => ({
+                    role: msg.role,
+                    content: msg.content
+                }));
+                
+                messages.push({
+                    role: 'user',
+                    content: content
+                });
+
+                const payload = {
+                    model: model,
+                    messages: messages,
+                    temperature: this.settings.temperature,
+                    max_tokens: parseInt(this.settings.max_tokens),
+                    stream: false
+                };
+
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${this.apiKey}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error?.message || `API请求失败: ${response.status}`);
+                }
+
+                const data = await response.json();
+                return data.choices[0].message.content;
+            }
+
+            // 语音识别相关方法
+            async startVoiceRecording() {
+                if (this.isRecording) return;
+
+                try {
+                    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                        throw new Error('您的浏览器不支持语音录制功能');
+                    }
+
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    this.mediaRecorder = new MediaRecorder(stream);
+                    this.audioChunks = [];
+                    
+                    this.mediaRecorder.addEventListener('dataavailable', (event) => {
+                        this.audioChunks.push(event.data);
+                    });
+                    
+                    this.mediaRecorder.addEventListener('stop', () => {
+                        this.processAudioRecording();
+                        stream.getTracks().forEach(track => track.stop());
+                    });
+                    
+                    this.mediaRecorder.start();
+                    this.isRecording = true;
+                    
+                    // 更新UI
+                    const voiceBtn = document.getElementById('voiceInputBtn');
+                    voiceBtn.classList.remove('bg-gray-100', 'text-gray-700');
+                    voiceBtn.classList.add('bg-red-500', 'text-white');
+                    voiceBtn.innerHTML = '<i class="fa fa-microphone"></i>';
+                    
+                    this.showNotification('开始录音...', 'info');
+                    
+                } catch (error) {
+                    console.error('录音启动失败:', error);
+                    this.showNotification(`录音启动失败: ${error.message}`, 'error');
+                }
+            }
+
+            stopVoiceRecording() {
+                if (!this.isRecording || !this.mediaRecorder) return;
+
+                this.mediaRecorder.stop();
+                this.isRecording = false;
+                
+                // 更新UI
+                const voiceBtn = document.getElementById('voiceInputBtn');
+                voiceBtn.classList.remove('bg-red-500', 'text-white');
+                voiceBtn.classList.add('bg-gray-100', 'text-gray-700');
+                voiceBtn.innerHTML = '<i class="fa fa-microphone"></i>';
+                
+                this.showNotification('录音结束，正在识别...', 'info');
+            }
+
+            async processAudioRecording() {
+                if (this.audioChunks.length === 0) return;
+
+                try {
+                    const audioBlob = new Blob(this.audioChunks, { type: 'audio/wav' });
+                    const text = await this.callVoiceRecognitionAPI(audioBlob);
+                    
+                    if (text) {
+                        const messageInput = document.getElementById('messageInput');
+                        messageInput.value = text;
+                        this.updateCharCount(text);
+                        
+                        if (this.settings.auto_send_after_voice) {
+                            setTimeout(() => {
+                                this.sendMessage();
+                            }, 500);
+                        } else {
+                            this.showNotification('语音识别完成', 'success');
+                        }
+                    }
+                    
+                } catch (error) {
+                    console.error('语音识别失败:', error);
+                    this.showNotification(`语音识别失败: ${error.message}`, 'error');
+                }
+            }
+
+            async callVoiceRecognitionAPI(audioBlob) {
+                try {
+                    const formData = new FormData();
+                    formData.append('model', 'FunAudioLLM/SenseVoiceSmall');
+                    formData.append('file', audioBlob);
+                    
+                    const response = await fetch('https://api.siliconflow.cn/v1/audio/transcriptions', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${this.apiKey}`
+                        },
+                        body: formData
+                    });
+                    
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.error?.message || '语音识别API请求失败');
+                    }
+                    
+                    const data = await response.json();
+                    return data.text;
+                    
+                } catch (error) {
+                    console.error('语音识别API调用失败:', error);
+                    throw error;
+                }
+            }
+
+            // AI管理相关方法
+            showAddAiModal() {
+                document.getElementById('modelName').value = '';
+                document.getElementById('displayName').value = '';
+                document.getElementById('addAiModal').classList.remove('hidden');
+            }
+
+            addAI() {
+                const model = document.getElementById('modelName').value.trim();
+                const displayName = document.getElementById('displayName').value.trim();
+
+                if (!model) {
+                    this.showNotification('请输入模型名称', 'error');
+                    return;
+                }
+
+                if (!model.includes('/')) {
+                    if (!confirm('模型名称似乎不包含"/"，格式应为"组织名/模型名"。确定要使用这个模型名称吗？')) {
+                        return;
+                    }
+                }
+
+                const ai = {
+                    id: Date.now().toString(),
+                    model: model,
+                    displayName: displayName || this.formatModelName(model),
+                    createdAt: new Date().toISOString()
+                };
+
+                this.ais.push(ai);
+                localStorage.setItem('saved_ais', JSON.stringify(this.ais));
+                this.renderAIList();
+                this.hideModal('addAiModal');
+                this.showNotification('AI添加成功！', 'success');
+            }
+
+            editAI(aiId) {
+                const ai = this.ais.find(a => a.id === aiId);
+                if (ai) {
+                    document.getElementById('modelName').value = ai.model;
+                    document.getElementById('displayName').value = ai.displayName;
+                    document.getElementById('addAiModal').classList.remove('hidden');
+                    
+                    // 修改表单提交事件
+                    const form = document.getElementById('addAiForm');
+                    const originalSubmit = form.onsubmit;
+                    
+                    form.onsubmit = (e) => {
+                        e.preventDefault();
+                        
+                        const newModel = document.getElementById('modelName').value.trim();
+                        const newDisplayName = document.getElementById('displayName').value.trim();
+                        
+                        if (!newModel) {
+                            this.showNotification('请输入模型名称', 'error');
+                            return;
+                        }
+                        
+                        ai.model = newModel;
+                        ai.displayName = newDisplayName || this.formatModelName(newModel);
+                        
+                        localStorage.setItem('saved_ais', JSON.stringify(this.ais));
+                        this.renderAIList();
+                        this.hideModal('addAiModal');
+                        this.showNotification('AI更新成功！', 'success');
+                        
+                        // 恢复原始提交事件
+                        form.onsubmit = originalSubmit;
+                    };
+                }
+            }
+
+            deleteAI(aiId) {
+                const ai = this.ais.find(a => a.id === aiId);
+                if (ai && confirm(`确定要删除"${ai.displayName}"吗？`)) {
+                    // 从所有群聊中移除这个AI
+                    this.groups.forEach(group => {
+                        group.members = group.members.filter(id => id !== aiId);
+                        group.muted = group.muted.filter(id => id !== aiId);
+                    });
+                    
+                    // 删除AI
+                    this.ais = this.ais.filter(a => a.id !== aiId);
+                    
+                    // 删除相关聊天记录
+                    const privateChatId = `private_${aiId}`;
+                    if (this.contexts[privateChatId]) {
+                        delete this.contexts[privateChatId];
+                    }
+                    
+                    // 如果当前正在聊天的是这个AI，切换到其他聊天
+                    if (this.currentChat === privateChatId) {
+                        this.selectFirstAvailableChat();
+                    }
+                    
+                    localStorage.setItem('saved_ais', JSON.stringify(this.ais));
+                    localStorage.setItem('chat_groups', JSON.stringify(this.groups));
+                    localStorage.setItem('chat_contexts', JSON.stringify(this.contexts));
+                    
+                    this.renderAIList();
+                    this.renderGroupList();
+                    this.showNotification(`"${ai.displayName}"已删除`, 'success');
+                }
+            }
+
+            // 群聊管理相关方法
+            showNewGroupModal() {
+                if (this.ais.length === 0) {
+                    this.showNotification('请先添加AI', 'error');
+                    return;
+                }
+
+                const aiMembersList = document.getElementById('aiMembersList');
+                aiMembersList.innerHTML = '';
+
+                this.ais.forEach(ai => {
+                    const memberItem = document.createElement('div');
+                    memberItem.className = 'flex items-center justify-between p-2 border rounded-lg';
+                    memberItem.innerHTML = `
+                        <div class="flex items-center gap-2">
+                            <input type="checkbox" id="ai_${ai.id}" value="${ai.id}" 
+                                   class="w-4 h-4 text-primary focus:ring-primary border-gray-300 rounded">
+                            <label for="ai_${ai.id}" class="text-sm text-gray-700">${ai.displayName}</label>
+                        </div>
+                    `;
+                    aiMembersList.appendChild(memberItem);
+                });
+
+                document.getElementById('groupName').value = '';
+                document.getElementById('newGroupModal').classList.remove('hidden');
+            }
+
+            createGroup() {
+                const groupName = document.getElementById('groupName').value.trim();
+                if (!groupName) {
+                    this.showNotification('请输入群聊名称', 'error');
+                    return;
+                }
+
+                const selectedAis = Array.from(document.querySelectorAll('#aiMembersList input[type="checkbox"]:checked'))
+                    .map(input => input.value);
+
+                if (selectedAis.length === 0) {
+                    this.showNotification('请至少选择一个AI加入群聊', 'error');
+                    return;
+                }
+
+                const group = {
+                    id: 'group_' + Date.now(),
+                    name: groupName,
+                    members: selectedAis,
+                    muted: [],
+                    createdAt: new Date().toISOString()
+                };
+
+                this.groups.push(group);
+                localStorage.setItem('chat_groups', JSON.stringify(this.groups));
+                
+                this.renderGroupList();
+                this.hideModal('newGroupModal');
+                this.switchChat(group.id);
+                
+                this.showNotification(`群聊"${groupName}"创建成功！`, 'success');
+            }
+
+            showGroupManagementModal() {
+                const container = document.getElementById('groupManagementList');
+                container.innerHTML = '';
+
+                if (this.groups.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center py-4 text-gray-500">
+                            <i class="fa fa-users text-xl mb-2"></i>
+                            <p class="text-sm">暂无群聊</p>
+                        </div>
+                    `;
+                } else {
+                    this.groups.forEach(group => {
+                        const groupItem = document.createElement('div');
+                        groupItem.className = 'flex items-center justify-between p-3 border rounded-lg';
+                        groupItem.innerHTML = `
+                            <div>
+                                <div class="font-medium text-gray-800">${group.name}</div>
+                                <div class="text-xs text-gray-500">${group.members.length}个成员</div>
+                            </div>
+                            <button onclick="app.showGroupSettingsModal('${group.id}')" 
+                                    class="text-primary hover:text-secondary transition-colors">
+                                <i class="fa fa-cog"></i>
+                            </button>
+                        `;
+                        container.appendChild(groupItem);
+                    });
+                }
+
+                document.getElementById('groupManagementModal').classList.remove('hidden');
+            }
+
+            showGroupSettingsModal(groupId) {
+                const group = this.groups.find(g => g.id === groupId);
+                if (!group) return;
+
+                document.getElementById('currentGroupId').value = groupId;
+                document.getElementById('editGroupName').value = group.name;
+
+                const membersList = document.getElementById('groupMembersList');
+                membersList.innerHTML = '';
+
+                this.ais.forEach(ai => {
+                    const isMember = group.members.includes(ai.id);
+                    const isMuted = group.muted.includes(ai.id);
+                    
+                    const memberItem = document.createElement('div');
+                    memberItem.className = 'flex items-center justify-between p-2 border rounded-lg';
+                    memberItem.innerHTML = `
+                        <div class="flex items-center gap-2">
+                            <input type="checkbox" id="group_ai_${ai.id}" value="${ai.id}" 
+                                   class="w-4 h-4 text-primary focus:ring-primary border-gray-300 rounded" ${isMember ? 'checked' : ''}>
+                            <label for="group_ai_${ai.id}" class="text-sm text-gray-700">${ai.displayName}</label>
+                        </div>
+                        ${isMember ? `
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs text-gray-500">状态:</span>
+                                <select class="text-xs" onchange="app.updateMemberStatus('${groupId}', '${ai.id}', this.value)">
+                                    <option value="active" ${!isMuted ? 'selected' : ''}>活跃</option>
+                                    <option value="muted" ${isMuted ? 'selected' : ''}>静音</option>
+                                </select>
+                            </div>
+                        ` : ''}
+                    `;
+                    membersList.appendChild(memberItem);
+                });
+
+                document.getElementById('groupSettingsModal').classList.remove('hidden');
+            }
+
+            updateMemberStatus(groupId, aiId, status) {
+                const group = this.groups.find(g => g.id === groupId);
+                if (!group) return;
+
+                if (status === 'muted' && !group.muted.includes(aiId)) {
+                    group.muted.push(aiId);
+                } else if (status === 'active' && group.muted.includes(aiId)) {
+                    group.muted = group.muted.filter(id => id !== aiId);
+                }
+
+                localStorage.setItem('chat_groups', JSON.stringify(this.groups));
+            }
+
+            saveGroupSettings() {
+                const groupId = document.getElementById('currentGroupId').value;
+                const groupName = document.getElementById('editGroupName').value.trim();
+                const selectedAis = Array.from(document.querySelectorAll('#groupMembersList input[type="checkbox"]:checked'))
+                    .map(input => input.value);
+
+                if (!groupName) {
+                    this.showNotification('请输入群聊名称', 'error');
+                    return;
+                }
+
+                const group = this.groups.find(g => g.id === groupId);
+                if (group) {
+                    group.name = groupName;
+                    
+                    // 保持原有静音状态
+                    const oldMuted = group.muted;
+                    group.muted = oldMuted.filter(id => selectedAis.includes(id));
+                    group.members = selectedAis;
+
+                    localStorage.setItem('chat_groups', JSON.stringify(this.groups));
+                    
+                    this.renderGroupList();
+                    this.updateChatHeader();
+                    this.hideModal('groupSettingsModal');
+                    this.showNotification('群聊设置已保存', 'success');
+                }
+            }
+
+            deleteGroup() {
+                const groupId = document.getElementById('currentGroupId').value;
+                const group = this.groups.find(g => g.id === groupId);
+                
+                if (group && confirm(`确定要删除群聊"${group.name}"吗？`)) {
+                    // 删除群聊
+                    this.groups = this.groups.filter(g => g.id !== groupId);
+                    
+                    // 删除相关聊天记录
+                    if (this.contexts[groupId]) {
+                        delete this.contexts[groupId];
+                    }
+                    
+                    // 如果当前正在聊天的是这个群聊，切换到其他聊天
+                    if (this.currentChat === groupId) {
+                        this.selectFirstAvailableChat();
+                    }
+                    
+                    localStorage.setItem('chat_groups', JSON.stringify(this.groups));
+                    localStorage.setItem('chat_contexts', JSON.stringify(this.contexts));
+                    
+                    this.renderGroupList();
+                    this.hideModal('groupSettingsModal');
+                    this.showNotification(`群聊"${group.name}"已删除`, 'success');
+                }
+            }
+
+            // 设置相关方法
+            showSettingsModal() {
+                document.getElementById('temperature').value = this.settings.temperature;
+                document.getElementById('temperatureValue').textContent = this.settings.temperature;
+                document.getElementById('maxTokens').value = this.settings.max_tokens;
+                document.getElementById('groupSequential').checked = this.settings.group_sequential;
+                document.getElementById('autoSendAfterVoice').checked = this.settings.auto_send_after_voice;
+
+                document.getElementById('settingsModal').classList.remove('hidden');
+            }
+
+            saveSettings() {
+                this.settings.temperature = parseFloat(document.getElementById('temperature').value);
+                this.settings.max_tokens = document.getElementById('maxTokens').value;
+                this.settings.group_sequential = document.getElementById('groupSequential').checked;
+                this.settings.auto_send_after_voice = document.getElementById('autoSendAfterVoice').checked;
+
+                localStorage.setItem('app_settings', JSON.stringify(this.settings));
+                this.hideModal('settingsModal');
+                this.showNotification('设置已保存', 'success');
+            }
+
+            resetAllData() {
+                if (confirm('确定要重置所有数据吗？此操作不可撤销！')) {
+                    localStorage.clear();
+                    location.reload();
+                }
+            }
+
+            // 工具方法
+            formatModelName(modelName) {
+                if (!modelName) return '未知模型';
+                
+                let displayName = modelName;
+                if (modelName.includes('/')) {
+                    const parts = modelName.split('/');
+                    displayName = parts[parts.length - 1];
+                }
+                
+                if (displayName.length > 14) {
+                    displayName = displayName.substring(0, 14) + '...';
+                }
+                
+                return displayName;
+            }
+
+            getFullModelName(modelName) {
+                if (!modelName) return '未知模型';
+                return modelName;
+            }
+
+            formatShortModelName(modelName) {
+                if (!modelName) return '未知';
+                
+                let shortName = modelName;
+                if (modelName.includes('/')) {
+                    const parts = modelName.split('/');
+                    shortName = parts[parts.length - 1];
+                }
+                
+                if (shortName.length > 10) {
+                    shortName = shortName.substring(0, 10) + '...';
+                }
+                
+                return shortName;
+            }
+
+            formatMessage(content) {
+                return content
+                    .replace(/\n/g, '<br>')
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                    .replace(/`(.*?)`/g, '<code class="bg-gray-200 px-1 py-0.5 rounded text-sm">$1</code>')
+                    .replace(/```([\s\S]*?)```/g, '<pre class="bg-gray-200 p-3 rounded text-sm overflow-x-auto"><code>$1</code></pre>');
+            }
+
+            formatTime(timestamp) {
+                const date = new Date(timestamp);
+                return date.toLocaleTimeString('zh-CN', {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            }
+
+            updateCharCount(content) {
+                const count = content.length;
+                const maxCount = 2000;
+                const charCount = document.getElementById('charCount');
+                charCount.textContent = `${count}/${maxCount}`;
+                
+                if (count > maxCount) {
+                    charCount.className = 'text-red-500';
+                } else {
+                    charCount.className = 'text-gray-500';
+                }
+            }
+
+            clearCurrentChat() {
+                if (confirm('确定要清空当前聊天记录吗？')) {
+                    if (this.currentChat) {
+                        this.contexts[this.currentChat] = [];
+                        this.saveContexts();
+                        this.loadCurrentChat();
+                        this.showNotification('聊天记录已清空', 'success');
+                    }
+                }
+            }
+
+            exportChat() {
+                if (!this.currentChat) {
+                    this.showNotification('请先选择一个聊天', 'error');
+                    return;
+                }
+
+                const context = this.getCurrentContext();
+                if (context.length === 0) {
+                    this.showNotification('没有聊天记录可导出', 'error');
+                    return;
+                }
+
+                let chatTitle = '聊天记录';
+                if (this.currentChat.startsWith('group_')) {
+                    const group = this.groups.find(g => g.id === this.currentChat);
+                    chatTitle = group ? group.name : '群聊';
+                } else if (this.currentChat.startsWith('private_')) {
+                    const aiId = this.currentChat.replace('private_', '');
+                    const ai = this.ais.find(a => a.id === aiId);
+                    chatTitle = ai ? ai.displayName : '私聊';
+                }
+                
+                let content = `青邻聊天 - ${chatTitle} - ${new Date().toLocaleString()}\n\n`;
+                
+                context.forEach(msg => {
+                    const time = this.formatTime(msg.timestamp);
+                    if (msg.role === 'user') {
+                        content += `我 (${time}):\n${msg.content}\n\n`;
+                    } else {
+                        const ai = this.ais.find(a => a.id === msg.sender) || { displayName: 'AI' };
+                        content += `${ai.displayName} (${time}):\n${msg.content}\n\n`;
+                    }
+                });
+
+                const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${chatTitle}_${new Date().getTime()}.txt`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                this.showNotification('聊天记录已导出', 'success');
+            }
+
+            updateApiKeyDisplay() {
+                if (this.apiKey) {
+                    const maskedKey = `API: ${this.apiKey.substring(0, 5)}...${this.apiKey.substring(this.apiKey.length - 5)}`;
+                    document.getElementById('apiKeyDisplay').textContent = maskedKey;
+                }
+            }
+
+            showAuthorInfo() {
+                this.showNotification('青邻聊天 - 智能AI聊天工具', 'info', '作者：B站UP主\n账号：https://space.bilibili.com/3537105093396975\n\n感谢您的使用！');
+            }
+
+            showNotification(title, type = 'info', message = '') {
+                const notification = document.getElementById('notification');
+                const icon = document.getElementById('notificationIcon');
+                const titleEl = document.getElementById('notificationTitle');
+                const messageEl = document.getElementById('notificationMessage');
+
+                // 设置图标和颜色
+                if (type === 'success') {
+                    icon.className = 'w-8 h-8 bg-green-500 rounded-full flex items-center justify-center';
+                    icon.innerHTML = '<i class="fa fa-check text-white"></i>';
+                } else if (type === 'error') {
+                    icon.className = 'w-8 h-8 bg-red-500 rounded-full flex items-center justify-center';
+                    icon.innerHTML = '<i class="fa fa-times text-white"></i>';
+                } else if (type === 'warning') {
+                    icon.className = 'w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center';
+                    icon.innerHTML = '<i class="fa fa-exclamation text-white"></i>';
+                } else {
+                    icon.className = 'w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center';
+                    icon.innerHTML = '<i class="fa fa-info text-white"></i>';
+                }
+
+                titleEl.textContent = title;
+                messageEl.textContent = message;
+
+                // 显示通知
+                notification.classList.remove('hidden');
+                notification.classList.add('fade-in');
+
+                // 3秒后自动隐藏
+                setTimeout(() => {
+                    notification.classList.add('hidden');
+                }, 3000);
+            }
+
+            hideModal(modalId) {
+                document.getElementById(modalId).classList.add('hidden');
+            }
+        }
+
+        // ==============================
+        // 全局应用实例
+        // ==============================
+        let app;
+
+        // 初始化应用
+        document.addEventListener('DOMContentLoaded', () => {
+            app = new ChatApp();
+        });
+    </script>
+</body>
+</html>
