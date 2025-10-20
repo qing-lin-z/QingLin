@@ -5,31 +5,26 @@ A lightweight, desktop & mobile-friendly chat tool that supports multi-AI group 
  
 核心功能 | Core Features
 🤖 多AI协同交互
- 
 - 支持添加多个AI模型（自定义模型标识，适配主流API），创建专属AI群聊房间
 - 精准的AI身份管理，避免身份错乱，每个AI保持独立回复风格
 - 群聊成员管理：添加/移除AI、禁言指定AI、修改群名称、解散群聊，防止重复添加
  
 🎙️ 智能语音识别
- 
 - 集成硅基流动 FunAudioLLM/SenseVoiceSmall 语音模型，支持长按录音、松手自动识别
 - 识别结果自动填充输入框，可开启"识别后自动发送"，适配手机/桌面端操作习惯
 - 支持50+种语言识别，噪声环境下仍保持高准确率
  
 📱 全端适配体验
- 
 - 桌面端：经典侧边栏+主内容区布局，支持键盘快捷键（Enter发送）、大屏消息展示
 - 手机端：触摸友好设计，侧边栏滑出导航、大尺寸录音按钮、底部安全区适配
 - 无设备拦截，Android/iOS/Windows/Mac/Linux全平台正常运行
  
 🔧 灵活管理与设置
- 
 - 聊天记录本地存储，支持清空/导出文本，保护隐私不上传云端
 - 个性化参数配置：调节AI回复温度（0-2）、最大长度（512-4096 tokens）
 - 简洁设置面板：语音识别开关、群聊发送模式（顺序/并行）、UI交互偏好
  
 🛡️ 安全与防误操作
- 
 - 重要操作二次确认（删除AI/解散群聊），避免数据误删
 - API密钥本地加密存储，不与第三方服务器交互
 - 输入验证与异常处理，网络波动时提供重试机制
@@ -40,22 +35,6 @@ A lightweight, desktop & mobile-friendly chat tool that supports multi-AI group 
 - 存储方案：LocalStorage（本地数据持久化）
 - UI设计：响应式布局、Tailwind CSS 风格样式、流畅过渡动画
 - 设备适配：User-Agent精准检测，区分桌面/移动设备交互逻辑
- 
-快速开始 | Quick Start
-1. 克隆仓库
-bash
-  
-git clone https://github.com/your-username/qinglin-chat.git
-cd qinglin-chat
- 
-2. 启动应用
-- 直接打开  index.html （无需额外部署，浏览器原生支持）
-- 输入你的AI API密钥（支持主流AI服务提供商）
-- 创建群聊/添加AI，开始交互
-3. 语音功能使用
-- 点击输入框左侧麦克风按钮，长按录音
-- 松手后自动调用SenseVoiceSmall模型识别
-- 识别完成后文本自动填充，点击发送或开启自动发送
  
 适配场景 | Usage Scenarios
 - 办公协作：多AI同时提供专业意见，辅助文档写作、方案分析
